@@ -1,4 +1,4 @@
-# Platzigram Views
+"""Platzigram Views"""
 
 # Django
 from django.http import HttpResponse
