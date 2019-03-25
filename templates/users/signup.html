@@ -1,0 +1,38 @@
+{% extends 'users/base.html' %}
+
+{% block head_content %}
+    <title>Platzigram Signup</title>
+{% endblock head_content %}
+
+{% block container %}
+
+        {% if error %}
+            <p class="alert alert-danger">{{ error }}</p>
+        {% endif %}
+
+        <form method="POST" action="{% url "signup" %}">
+        {% csrf_token %} {% comment %} Esto sirve para decirle a Django que estamos autorizados a realizar metodos POST con un Token autogenerado {% endcomment %}
+        <div class="form-group">
+            <input type="text" class="form-control" name="username" placeholder="User" required="true">
+        </div>
+        <div class="form-group">
+            <input type="password" class="form-control" name="password" placeholder="Password" required="true">
+        </div>
+        <div class="form-group">
+            <input type="password" class="form-control" name="password_confirmation" placeholder="Password confirmation" required="true">
+        </div>
+        <div class="form-group">
+            <input type="text" class="form-control" name="first_name" placeholder="First name" required="true">
+        </div>
+        <div class="form-group">
+            <input type="text" class="form-control" name="last_name" placeholder="Last Name" required="true">
+        </div>
+        <div class="form-group">
+            <input type="email" class="form-control" name="email" placeholder="Email" required="true">
+        </div>
+        <div class="form-group">
+            <button type="submit" class="btn btn-primary btn-block mt-5">Register</button>
+        </div>
+    </form>
+
+{% endblock container %}

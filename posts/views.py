@@ -1,6 +1,7 @@
 """Posts views."""
 
 # Django
+from django.contrib.auth.decorators import login_required
 from django.shortcuts import render
 
 #Utilities
@@ -38,6 +39,7 @@ posts = [
 ]
 
 
+@login_required
 def list_posts(req):
     """List existing posts."""
-    return render(req, 'feed.html', {'posts': posts})
+    return render(req, 'posts/feed.html', {'posts': posts})
