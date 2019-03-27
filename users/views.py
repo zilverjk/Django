@@ -12,6 +12,10 @@ from django.db.utils import IntegrityError
 from django.contrib.auth.models import User
 from users.models import Profile
 
+# Forms
+from users.forms import ProfileForm
+
+
 def login_view(req):
     """Login View."""
     if req.method == 'POST':
@@ -22,11 +26,12 @@ def login_view(req):
 
         if user:
             login(req, user)
-            return redirect('feed') # <-- Le ponesmos el sobrenombre al path del feed y sabe a donde ir
+            # <-- Le ponesmos el sobrenombre al path del feed y sabe a donde ir
+            return redirect('feed')
         else:
-            return render(req, 
-            'users/login.html', 
-            {'error': 'Invalid username or password'})
+            return render(req,
+                          'users/login.html',
+                          {'error': 'Invalid username or password'})
 
     return render(req, 'users/login.html')
 
@@ -51,23 +56,52 @@ def signup(req):
 
         # Registramos el usuario invocando al modelo y en un try por si ingresan el usuario repetido
         try:
-            user = User.objects.create_user(username=username, password=password)
+            user = User.objects.create_user(
+                username=username, password=password)
         except IntegrityError:
             return render(req, 'users/signup.html', {'error': 'Username already in use!'})
-        
+
         user.first_name = req.POST['first_name']
         user.last_name = req.POST['last_name']
         user.email = req.POST['email']
-        user.save() # Guardamos siempre lo que recibimos de POST
+        user.save()  # Guardamos siempre lo que recibimos de POST
 
         profile = Profile(user=user)
-        profile.save() # Guardamos siempre lo que recibimos de POST
+        profile.save()  # Guardamos siempre lo que recibimos de POST
 
         return redirect('login')
 
     return render(req, 'users/signup.html')
 
 
-def update_profile(req):
+@login_required
+def update_profile(request):
     """Update user's Profile view."""
-    return render(req, 'users/update_profile.html')
+    profile = request.user.profile
+
+    if request.method == 'POST':
+        form = ProfileForm(request.POST, request.FILES) # <--- request.FILES para envíar archivos como la imagen de profile.
+
+        if form.is_valid():
+            data = form.cleaned_data
+
+            profile.website = data['website']
+            profile.phone_number = data['phone_number']
+            profile.biography = data['biography']
+            profile.picture = data['picture']
+            profile.save()
+
+            return redirect('update_profile')
+            
+    else:
+        form = ProfileForm()
+
+    return render(
+        request=request,
+        template_name='users/update_profile.html',
+        context={
+            'profile': profile,
+            'user': request.user,
+            'form': form
+        }
+    )

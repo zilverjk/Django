@@ -23,13 +23,15 @@ class ProfileCompletionMiddleware:
         
         # Nos aseguramos que el usuario este logeado
         if not request.user.is_anonymous:
-            profile = request.user.profile
-            
-            if not profile.picture or not profile.biography:
 
-                # Si estamos en otra pagina que no sea la del profile que nos redireccione a profile
-                if request.path not in [reverse('update_profile'), reverse('logout')]:
-                    return redirect('update_profile')
+            if not request.user.is_staff:
+                profile = request.user.profile
+                
+                if not profile.picture or not profile.biography:
+
+                    # Si estamos en otra pagina que no sea la del profile que nos redireccione a profile
+                    if request.path not in [reverse('update_profile'), reverse('logout')]:
+                        return redirect('update_profile')
 
         response = self.get_response(request)
         return response
