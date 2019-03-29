@@ -2,8 +2,11 @@
 
 # Django
 from django.contrib.auth import authenticate, login, logout
+from django.contrib.auth import views as auth_views
 from django.contrib.auth.decorators import login_required
-from django.shortcuts import render, redirect
+from django.contrib.auth.mixins import LoginRequiredMixin
+from django.urls import reverse, reverse_lazy
+from django.views.generic import DetailView, FormView, UpdateView
 
 # Exceptions
 from django.db.utils import IntegrityError
@@ -11,97 +14,68 @@ from django.db.utils import IntegrityError
 # Models
 from django.contrib.auth.models import User
 from users.models import Profile
+from posts.models import Post
 
 # Forms
-from users.forms import ProfileForm
+from users.forms import SignupForm
 
 
-def login_view(req):
-    """Login View."""
-    if req.method == 'POST':
+class UserDetailView(LoginRequiredMixin, DetailView):
+    """User detail view."""
 
-        username = req.POST['username']
-        password = req.POST['password']
-        user = authenticate(req, username=username, password=password)
-
-        if user:
-            login(req, user)
-            # <-- Le ponesmos el sobrenombre al path del feed y sabe a donde ir
-            return redirect('feed')
-        else:
-            return render(req,
-                          'users/login.html',
-                          {'error': 'Invalid username or password'})
-
-    return render(req, 'users/login.html')
+    template_name = 'user/detail.html'
+    slug_field = 'username'
+    slug_url_kwarg = 'username'
+    queryset = User.objects.all()
+    context_object_name = 'user'
 
 
-@login_required
-def logout_view(req):
-    """Logout a user."""
-    logout(req)
-    return redirect('login')
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        user = self.get_object()
+        context['posts'] = Post.objects.filter(user=user).order_by('-created')
+        return context
 
 
-def signup(req):
-    """Signup view."""
-    if req.method == 'POST':
-        username = req.POST['username']
-        password = req.POST['password']
-        password_confirmation = req.POST['password_confirmation']
+class SignupView(FormView):
+    """Users sign up view."""
 
-        # Si las contraseñas no coinciden mandamos a la pagina la validación
-        if password != password_confirmation:
-            return render(req, 'users/signup.html', {'error': 'Passwords doesn\'t match!'})
+    template_name = 'users/signup.html'
+    form_class = SignupForm
+    success_url = reverse_lazy('users:login')
 
-        # Registramos el usuario invocando al modelo y en un try por si ingresan el usuario repetido
-        try:
-            user = User.objects.create_user(
-                username=username, password=password)
-        except IntegrityError:
-            return render(req, 'users/signup.html', {'error': 'Username already in use!'})
+    def form_valid(self, form):
+        """Save form data."""
 
-        user.first_name = req.POST['first_name']
-        user.last_name = req.POST['last_name']
-        user.email = req.POST['email']
-        user.save()  # Guardamos siempre lo que recibimos de POST
-
-        profile = Profile(user=user)
-        profile.save()  # Guardamos siempre lo que recibimos de POST
-
-        return redirect('login')
-
-    return render(req, 'users/signup.html')
+        form.save()
+        return super().form_valid(form)
 
 
-@login_required
-def update_profile(request):
-    """Update user's Profile view."""
-    profile = request.user.profile
+class LoginView(auth_views.LoginView):
+    """Login view."""
 
-    if request.method == 'POST':
-        form = ProfileForm(request.POST, request.FILES) # <--- request.FILES para envíar archivos como la imagen de profile.
+    template_name = 'users/login.html'
 
-        if form.is_valid():
-            data = form.cleaned_data
 
-            profile.website = data['website']
-            profile.phone_number = data['phone_number']
-            profile.biography = data['biography']
-            profile.picture = data['picture']
-            profile.save()
+class UpdateProfileView(LoginRequiredMixin, UpdateView):
+    """Update profile view."""
 
-            return redirect('update_profile')
-            
-    else:
-        form = ProfileForm()
+    template_name = 'users/update_profile.html'
+    model = Profile
+    fields = ['website', 'biography', 'phone_number', 'picture']
 
-    return render(
-        request=request,
-        template_name='users/update_profile.html',
-        context={
-            'profile': profile,
-            'user': request.user,
-            'form': form
-        }
-    )
+    def get_object(self):
+        """Return user's profile"""
+        return self.request.user.profile
+
+    
+    def get_success_url(self):
+        """Return to user's profile."""
+        username = self.object.user.username
+        return reverse('users:detail', kwargs={'username': username})
+
+
+class LogoutView(LoginRequiredMixin, auth_views.LogoutView):
+    """Logout view."""
+
+    template_name = 'users/logged_out.html'

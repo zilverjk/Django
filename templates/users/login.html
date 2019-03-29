@@ -7,11 +7,13 @@
 
 {% block container %}
 
-    {% if error %}
-        <p class="alert alert-danger">{{ error }}</p>
+    {% if form.error %}
+        <p class="alert alert-danger">
+            Your username or password didn't match. Please try again.
+        </p>
     {% endif %}
 
-    <form method="POST" action="{% url "login" %}">
+    <form method="POST" action="{% url "users:login" %}">
         {% csrf_token %} {% comment %} Esto sirve para decirle a Django que estamos autorizados a realizar metodos POST con un Token autogenerado {% endcomment %}
         <div class="form-group">
             <input type="text" class="form-control" name="username" placeholder="User">
@@ -22,5 +24,7 @@
         <div class="form-group">
             <button type="submit" class="btn btn-primary btn-block mt-5">Sing in!</button>
         </div>
+
+        <p class="mt-4">Don't have an account yet? <a href="{% url "users:signup" %}">Sign up here!</a></p>
     </form>
 {% endblock container %}
